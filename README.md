@@ -1,3 +1,35 @@
+--------------------------------------------------------------------------------------------------
+Correct line of code for thickness
+-----------------------------------------
+
+ Font messageFont = new Font(bf, 10, Font.NORMAL);
+ Chunk messageChunk = new Chunk(row["Message"].ToString(), messageFont);
+
+ // thickness = underline thickness
+ // yOffset   = move underline DOWN (critical)
+ messageChunk.SetUnderline(0.6f, -1f);
+
+ Paragraph para = new Paragraph
+ {
+     Leading = 18f   // line height
+ };
+
+ para.Add(messageChunk);
+
+ cell = new PdfPCell(para)
+ {
+     Border = Rectangle.NO_BORDER,
+     PaddingTop = 3,
+     PaddingBottom = 8,
+     VerticalAlignment = Element.ALIGN_TOP
+ };
+
+ table.AddCell(cell);
+
+
+
+---------------------------------------------------------------------------------------------
+
 FOR CLOSING POP Window
 ----------------------------------
 

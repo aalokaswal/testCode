@@ -142,5 +142,513 @@ private byte[] GeneratePdfReport(DataTable data)
                 $"alert('Error generating report: {ex.Message}');", true);
         }
         -----------------------------------------------------------------------------------------------------
+
+----Button Designer--------
+
+ <asp:Button ID="btnGenerateReport" runat="server" OnClick="btnGenerateReport_Click" OnClientClick="document.forms[0].target='_blank';"
+  Text="Report" />
+
+
+
+        Some More Code for PDF Print..
+
+        ---------------------------------------------------------------------------------------------------------
+
+        using System;
+using System.Data;
+using System.Data.SqlClient;
+using System.IO;
+using System.Text;
+using System.Web.UI;
+using iTextSharp.text;
+using iTextSharp.text.pdf;
+
+namespace Report
+{
+    public partial class Contact : Page
+    {
+        protected void Page_Load(object sender, EventArgs e)
+        {
+
+        }
+
+        protected void btnGenerateReport_Click(object sender, EventArgs e)
+        {
+            //try
+            //{
+            //    // Get data from database
+            //    DataTable dt = GetScurptData();
+
+            //    if (dt != null && dt.Rows.Count > 0)
+            //    {
+            //        // Generate HTML report
+            //        string htmlReport = GenerateHtmlReport(dt);
+
+            //        // Send HTML as response (opens in new tab if target="_blank")
+            //        Response.Clear();
+            //        Response.ContentType = "text/html";
+            //        Response.Write(htmlReport);
+            //        Response.Flush();
+            //        Response.End();
+            //    }
+            //    else
+            //    {
+            //        ClientScript.RegisterStartupScript(this.GetType(), "alert",
+            //            "alert('No data found.');", true);
+            //    }
+            //}
+            //catch (Exception ex)
+            //{
+            //    ClientScript.RegisterStartupScript(this.GetType(), "alert",
+            //        "alert('Error: " + ex.Message.Replace("'", "\\'") + "');", true);
+            //}
+
+            try
+            {
+                // Get data from database
+                DataTable dt = GetScurptData();
+
+                if (dt != null && dt.Rows.Count > 0)
+                {
+                    // Generate PDF report
+                    byte[] pdfBytes = GeneratePdfReport(dt);
+
+                    // Send PDF to browser in new tab
+                    Response.Clear();
+                    Response.ContentType = "application/pdf";
+                    Response.AddHeader("Content-Disposition", "inline; filename=WaterQualityReport.pdf");
+                    Response.BinaryWrite(pdfBytes);
+                    Response.Flush();
+                    Response.End();
+                }
+                else
+                {
+                    ClientScript.RegisterStartupScript(this.GetType(), "alert",
+                        "alert('No data found.');", true);
+                }
+            }
+            catch (Exception ex)
+            {
+                ClientScript.RegisterStartupScript(this.GetType(), "alert",
+                    "alert('Error: " + ex.Message.Replace("'", "\\'") + "');", true);
+            }
+        }
+
+        private DataTable GetScurptData()
+        {
+            DataTable dt = new DataTable();
+            dt.Columns.Add("Type", typeof(string));
+            dt.Columns.Add("Site", typeof(string));
+            dt.Columns.Add("Message", typeof(string));
+
+            // OPTION 1: Using dummy data for testing
+            dt.Rows.Add("A", "", "Added:75 Updated:77 Warnings:405 Outliers:227 FROM:2022-10-28 09:57:44");
+            dt.Rows.Add("", "", "TO:2022-11-23 17:09:50");
+            dt.Rows.Add("O", "SC000", "D:20221018 T:0827 d:00.1 95th%:SPEC_COND 38 Sample Value: 62");
+            dt.Rows.Add("", "SC000", "D:20221114 T:1139 d:00.1 95th%:TDS 16.776 Sample Value: 46");
+            dt.Rows.Add("", "SC000", "D:20221024 T:0932 d:00.1 95th%:PHOSPHU .035 Sample Value: 0.10");
+            dt.Rows.Add("", "SC105", "D:20221011 T:0805 d:00.1 95th%:MAGNESIUM 12.993 Sample Value: 13");
+            dt.Rows.Add("", "SC105", "D:20221011 T:0805 d:00.1 95th%:POTASSIUM .702 Sample Value: 0.72");
+            dt.Rows.Add("", "SC201", "D:20221031 T:1103 d:00.1 95th%:CHLORIDE 16 Sample Value: 20");
+            dt.Rows.Add("", "SC201", "D:20221031 T:1108 d:00.1 95th%:CHLORIDE 16 Sample Value: 20");
+            dt.Rows.Add("", "SC203", "D:20221018 T:0916 d:00.1 95th%:CHLORIDE 142 Sample Value: 150");
+            dt.Rows.Add("", "SC204", "D:20221018 T:1008 d:00.1 95th%:SULFATE 162.371 Sample Value: 200");
+            dt.Rows.Add("", "SC205", "D:20221018 T:1101 d:00.1 95th%:CHLORIDE 54.48 Sample Value: 56");
+            dt.Rows.Add("", "SC215", "D:20221010 T:1440 d:00.1 95th%:MAGNESIUM 14 Sample Value: 19");
+            dt.Rows.Add("", "SC215", "D:20221010 T:1440 d:00.1 95th%:BROMIDE .51 Sample Value: 0.78");
+            dt.Rows.Add("", "SC215", "D:20221010 T:1440 d:00.1 95th%:AMMONIA .632 Sample Value: 2.1");
+            dt.Rows.Add("", "SC215", "D:20221010 T:1440 d:00.1 95th%:NITRATE 1.2 Sample Value: 1.7");
+            dt.Rows.Add("", "SC215", "D:20221010 T:1440 d:00.1 95th%:POTTASIUM 9.698 Sample Value: 10");
+            dt.Rows.Add("", "SC215", "D:20221010 T:1440 d:00.1 OLD_MAX:KJELDAHL 1.95 Sample Value: 2.7");
+            dt.Rows.Add("", "SC215", "D:20221010 T:1440 d:00.1 95th%:TOTHARD 249.3 Sample Value: 250");
+            dt.Rows.Add("O", "SC000", "D:20221018 T:0827 d:00.1 95th%:SPEC_COND 38 Sample Value: 62");
+            dt.Rows.Add("", "SC000", "D:20221114 T:1139 d:00.1 95th%:TDS 16.776 Sample Value: 46");
+            dt.Rows.Add("", "SC000", "D:20221024 T:0932 d:00.1 95th%:PHOSPHU .035 Sample Value: 0.10");
+            dt.Rows.Add("", "SC105", "D:20221011 T:0805 d:00.1 95th%:MAGNESIUM 12.993 Sample Value: 13");
+            dt.Rows.Add("", "SC105", "D:20221011 T:0805 d:00.1 95th%:POTASSIUM .702 Sample Value: 0.72");
+            dt.Rows.Add("", "SC201", "D:20221031 T:1103 d:00.1 95th%:CHLORIDE 16 Sample Value: 20");
+            dt.Rows.Add("", "SC201", "D:20221031 T:1108 d:00.1 95th%:CHLORIDE 16 Sample Value: 20");
+            dt.Rows.Add("", "SC203", "D:20221018 T:0916 d:00.1 95th%:CHLORIDE 142 Sample Value: 150");
+            dt.Rows.Add("", "SC204", "D:20221018 T:1008 d:00.1 95th%:SULFATE 162.371 Sample Value: 200");
+            dt.Rows.Add("", "SC205", "D:20221018 T:1101 d:00.1 95th%:CHLORIDE 54.48 Sample Value: 56");
+            dt.Rows.Add("", "SC215", "D:20221010 T:1440 d:00.1 95th%:MAGNESIUM 14 Sample Value: 19");
+            dt.Rows.Add("", "SC215", "D:20221010 T:1440 d:00.1 95th%:BROMIDE .51 Sample Value: 0.78");
+            dt.Rows.Add("", "SC215", "D:20221010 T:1440 d:00.1 95th%:AMMONIA .632 Sample Value: 2.1");
+            dt.Rows.Add("", "SC215", "D:20221010 T:1440 d:00.1 95th%:NITRATE 1.2 Sample Value: 1.7");
+            dt.Rows.Add("", "SC215", "D:20221010 T:1440 d:00.1 95th%:POTTASIUM 9.698 Sample Value: 10");
+            dt.Rows.Add("", "SC215", "D:20221010 T:1440 d:00.1 OLD_MAX:KJELDAHL 1.95 Sample Value: 2.7");
+            dt.Rows.Add("", "SC215", "D:20221010 T:1440 d:00.1 95th%:TOTHARD 249.3 Sample Value: 250");
+            dt.Rows.Add("O", "SC000", "D:20221018 T:0827 d:00.1 95th%:SPEC_COND 38 Sample Value: 62");
+            dt.Rows.Add("", "SC000", "D:20221114 T:1139 d:00.1 95th%:TDS 16.776 Sample Value: 46");
+            dt.Rows.Add("", "SC000", "D:20221024 T:0932 d:00.1 95th%:PHOSPHU .035 Sample Value: 0.10");
+            dt.Rows.Add("", "SC105", "D:20221011 T:0805 d:00.1 95th%:MAGNESIUM 12.993 Sample Value: 13");
+            dt.Rows.Add("", "SC105", "D:20221011 T:0805 d:00.1 95th%:POTASSIUM .702 Sample Value: 0.72");
+            dt.Rows.Add("", "SC201", "D:20221031 T:1103 d:00.1 95th%:CHLORIDE 16 Sample Value: 20");
+            dt.Rows.Add("", "SC201", "D:20221031 T:1108 d:00.1 95th%:CHLORIDE 16 Sample Value: 20");
+            dt.Rows.Add("", "SC203", "D:20221018 T:0916 d:00.1 95th%:CHLORIDE 142 Sample Value: 150");
+            dt.Rows.Add("", "SC204", "D:20221018 T:1008 d:00.1 95th%:SULFATE 162.371 Sample Value: 200");
+            dt.Rows.Add("", "SC205", "D:20221018 T:1101 d:00.1 95th%:CHLORIDE 54.48 Sample Value: 56");
+            dt.Rows.Add("", "SC215", "D:20221010 T:1440 d:00.1 95th%:MAGNESIUM 14 Sample Value: 19");
+            dt.Rows.Add("", "SC215", "D:20221010 T:1440 d:00.1 95th%:BROMIDE .51 Sample Value: 0.78");
+            dt.Rows.Add("", "SC215", "D:20221010 T:1440 d:00.1 95th%:AMMONIA .632 Sample Value: 2.1");
+            dt.Rows.Add("", "SC215", "D:20221010 T:1440 d:00.1 95th%:NITRATE 1.2 Sample Value: 1.7");
+            dt.Rows.Add("", "SC215", "D:20221010 T:1440 d:00.1 95th%:POTTASIUM 9.698 Sample Value: 10");
+            dt.Rows.Add("", "SC215", "D:20221010 T:1440 d:00.1 OLD_MAX:KJELDAHL 1.95 Sample Value: 2.7");
+            dt.Rows.Add("", "SC215", "D:20221010 T:1440 d:00.1 95th%:TOTHARD 249.3 Sample Value: 250");
+            dt.Rows.Add("O", "SC000", "D:20221018 T:0827 d:00.1 95th%:SPEC_COND 38 Sample Value: 62");
+            dt.Rows.Add("", "SC000", "D:20221114 T:1139 d:00.1 95th%:TDS 16.776 Sample Value: 46");
+            dt.Rows.Add("", "SC000", "D:20221024 T:0932 d:00.1 95th%:PHOSPHU .035 Sample Value: 0.10");
+            dt.Rows.Add("", "SC105", "D:20221011 T:0805 d:00.1 95th%:MAGNESIUM 12.993 Sample Value: 13");
+            dt.Rows.Add("", "SC105", "D:20221011 T:0805 d:00.1 95th%:POTASSIUM .702 Sample Value: 0.72");
+            dt.Rows.Add("", "SC201", "D:20221031 T:1103 d:00.1 95th%:CHLORIDE 16 Sample Value: 20");
+            dt.Rows.Add("", "SC201", "D:20221031 T:1108 d:00.1 95th%:CHLORIDE 16 Sample Value: 20");
+            dt.Rows.Add("", "SC203", "D:20221018 T:0916 d:00.1 95th%:CHLORIDE 142 Sample Value: 150");
+            dt.Rows.Add("", "SC204", "D:20221018 T:1008 d:00.1 95th%:SULFATE 162.371 Sample Value: 200");
+            dt.Rows.Add("", "SC205", "D:20221018 T:1101 d:00.1 95th%:CHLORIDE 54.48 Sample Value: 56");
+            dt.Rows.Add("", "SC215", "D:20221010 T:1440 d:00.1 95th%:MAGNESIUM 14 Sample Value: 19");
+            dt.Rows.Add("", "SC215", "D:20221010 T:1440 d:00.1 95th%:BROMIDE .51 Sample Value: 0.78");
+            dt.Rows.Add("", "SC215", "D:20221010 T:1440 d:00.1 95th%:AMMONIA .632 Sample Value: 2.1");
+            dt.Rows.Add("", "SC215", "D:20221010 T:1440 d:00.1 95th%:NITRATE 1.2 Sample Value: 1.7");
+            dt.Rows.Add("", "SC215", "D:20221010 T:1440 d:00.1 95th%:POTTASIUM 9.698 Sample Value: 10");
+            dt.Rows.Add("", "SC215", "D:20221010 T:1440 d:00.1 OLD_MAX:KJELDAHL 1.95 Sample Value: 2.7");
+            dt.Rows.Add("", "SC215", "D:20221010 T:1440 d:00.1 95th%:TOTHARD 249.3 Sample Value: 250");
+
+            return dt;
+
+            // OPTION 2: Uncomment below to use actual database connection
+            /*
+            string connectionString = System.Configuration.ConfigurationManager.ConnectionStrings["YourConnectionString"].ConnectionString;
+            
+            string query = @"SELECT typeof [Type], site_name [Site], xmsg [Message] 
+                            FROM befs_admin.scurpt
+                            WHERE dateof = @dateof
+                            ORDER BY typeof, site_name";
+
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                connection.Open();
+                using (SqlCommand command = new SqlCommand(query, connection))
+                {
+                    // Replace with your session variable or parameter
+                    command.Parameters.AddWithValue("@dateof", "2022-11-23");
+                    
+                    using (SqlDataAdapter da = new SqlDataAdapter(command))
+                    {
+                        da.Fill(dt);
+                    }
+                }
+            }
+            return dt;
+            */
+        }
+
+        private byte[] GeneratePdfReport(DataTable data)
+        {
+            using (MemoryStream ms = new MemoryStream())
+            {
+                // Increase top margin to make space for header on every page
+                Document document = new Document(PageSize.A4, 36, 36, 60, 36);
+
+                PdfWriter writer = PdfWriter.GetInstance(document, ms);
+
+                // ===========================
+                // INLINE PAGE HEADER EVENT
+                // ===========================
+
+                var dynamicHedaerValue = "Alok Aswal";
+                writer.PageEvent = new PdfPageEventHelperInline(dynamicHedaerValue);
+
+                document.Open();
+
+                // Create fonts
+                BaseFont bf = BaseFont.CreateFont(BaseFont.COURIER, BaseFont.CP1252, BaseFont.NOT_EMBEDDED);
+                Font normalFont = new Font(bf, 10, Font.NORMAL);
+                Font underlineFont = new Font(bf, 10, Font.UNDERLINE);
+
+                // Create table with 3 columns
+                PdfPTable table = new PdfPTable(3);
+                table.WidthPercentage = 100;
+                table.SetWidths(new float[] { 0.8f, 1.0f, 6.0f });
+
+                // Header row
+                PdfPCell headerCell;
+
+                headerCell = new PdfPCell(new Phrase("Type", normalFont));
+                headerCell.Border = Rectangle.NO_BORDER;
+                table.AddCell(headerCell);
+
+                headerCell = new PdfPCell(new Phrase("Site", normalFont));
+                headerCell.Border = Rectangle.NO_BORDER;
+                table.AddCell(headerCell);
+
+                headerCell = new PdfPCell(new Phrase("Message", normalFont));
+                headerCell.Border = Rectangle.NO_BORDER;
+                table.AddCell(headerCell);
+
+                // Data rows
+                foreach (DataRow row in data.Rows)
+                {
+                    PdfPCell cell;
+
+                    cell = new PdfPCell(new Phrase(row["Type"].ToString(), normalFont));
+                    cell.Border = Rectangle.NO_BORDER;
+                    table.AddCell(cell);
+
+                    cell = new PdfPCell(new Phrase(row["Site"].ToString(), normalFont));
+                    cell.Border = Rectangle.NO_BORDER;
+                    table.AddCell(cell);
+
+                    cell = new PdfPCell(new Phrase(row["Message"].ToString(), underlineFont));
+                    cell.Border = Rectangle.NO_BORDER;
+                    table.AddCell(cell);
+                }
+
+                document.Add(table);
+                document.Close();
+                writer.Close();
+
+                return ms.ToArray();
+            }
+        }
+
+        //private byte[] GeneratePdfReport(DataTable data)
+        //{
+        //    using (MemoryStream ms = new MemoryStream())
+        //    {
+        //        // Create PDF document
+        //        Document document = new Document(PageSize.A4, 36, 36, 36, 36);
+        //        PdfWriter writer = PdfWriter.GetInstance(document, ms);
+        //        document.Open();
+
+        //        // Create fonts
+        //        BaseFont bf = BaseFont.CreateFont(BaseFont.COURIER, BaseFont.CP1252, BaseFont.NOT_EMBEDDED);
+        //        Font normalFont = new Font(bf, 10, Font.NORMAL);
+        //        Font underlineFont = new Font(bf, 10, Font.UNDERLINE);
+
+        //        // Create table with 3 columns (no borders)
+        //        PdfPTable table = new PdfPTable(3);
+        //        table.WidthPercentage = 100;
+        //        table.SetWidths(new float[] { 0.8f, 1.0f, 6.0f });
+
+        //        // Add header cells (no border, no underline, no bold)
+        //        PdfPCell headerCell;
+
+        //        headerCell = new PdfPCell(new Phrase("Type", normalFont));
+        //        headerCell.Border = Rectangle.NO_BORDER;
+        //        headerCell.Padding = 4;
+        //        table.AddCell(headerCell);
+
+        //        headerCell = new PdfPCell(new Phrase("Site", normalFont));
+        //        headerCell.Border = Rectangle.NO_BORDER;
+        //        headerCell.Padding = 4;
+        //        table.AddCell(headerCell);
+
+        //        headerCell = new PdfPCell(new Phrase("Message", normalFont));
+        //        headerCell.Border = Rectangle.NO_BORDER;
+        //        headerCell.Padding = 4;
+        //        headerCell.PaddingBottom = 10;
+        //        table.AddCell(headerCell);
+
+        //        // Add data rows (no borders, message underlined)
+        //        foreach (DataRow row in data.Rows)
+        //        {
+        //            PdfPCell cell;
+
+        //            // Type column
+        //            cell = new PdfPCell(new Phrase(row["Type"].ToString(), normalFont));
+        //            cell.Border = Rectangle.NO_BORDER;
+        //            cell.Padding = 4;
+        //            cell.VerticalAlignment = Element.ALIGN_TOP;
+        //            table.AddCell(cell);
+
+        //            // Site column
+        //            cell = new PdfPCell(new Phrase(row["Site"].ToString(), normalFont));
+        //            cell.Border = Rectangle.NO_BORDER;
+        //            cell.Padding = 4;
+        //            cell.VerticalAlignment = Element.ALIGN_TOP;
+        //            table.AddCell(cell);
+
+        //            // Message column (underlined)
+        //            cell = new PdfPCell(new Phrase(row["Message"].ToString(), underlineFont));
+        //            cell.Border = Rectangle.NO_BORDER;
+        //            cell.Padding = 4;
+        //            cell.VerticalAlignment = Element.ALIGN_TOP;
+        //            table.AddCell(cell);
+        //        }
+
+        //        document.Add(table);
+        //        document.Close();
+        //        writer.Close();
+
+        //        return ms.ToArray();
+        //    }
+        //}
+
+        //private byte[] GeneratePdfReport(DataTable data)
+        //{
+        //    using (MemoryStream ms = new MemoryStream())
+        //    {
+        //        // Create PDF document
+        //        Document document = new Document(PageSize.A4, 36, 36, 36, 36);
+        //        PdfWriter writer = PdfWriter.GetInstance(document, ms);
+        //        document.Open();
+
+        //        // Create fonts
+        //        BaseFont bf = BaseFont.CreateFont(BaseFont.COURIER, BaseFont.CP1252, BaseFont.NOT_EMBEDDED);
+        //        Font headerFont = new Font(bf, 11, Font.BOLD);
+        //        Font cellFont = new Font(bf, 10, Font.NORMAL);
+        //        Font messageFont = new Font(bf, 9, Font.NORMAL);
+
+        //        // Create table with 3 columns
+        //        PdfPTable table = new PdfPTable(3);
+        //        table.WidthPercentage = 100;
+        //        table.SetWidths(new float[] { 0.6f, 0.8f, 6.1f });
+
+        //        // Add header cells
+        //        PdfPCell headerCell;
+
+        //        headerCell = new PdfPCell(new Phrase("Type", headerFont));
+        //        headerCell.Border = Rectangle.BOX;
+        //        headerCell.BorderWidth = 1f;
+        //        headerCell.BorderColor = BaseColor.BLACK;
+        //        headerCell.Padding = 4;
+        //        headerCell.BackgroundColor = BaseColor.WHITE;
+        //        table.AddCell(headerCell);
+
+        //        headerCell = new PdfPCell(new Phrase("Site", headerFont));
+        //        headerCell.Border = Rectangle.BOX;
+        //        headerCell.BorderWidth = 1f;
+        //        headerCell.BorderColor = BaseColor.BLACK;
+        //        headerCell.Padding = 4;
+        //        headerCell.BackgroundColor = BaseColor.WHITE;
+        //        table.AddCell(headerCell);
+
+        //        headerCell = new PdfPCell(new Phrase("Message", headerFont));
+        //        headerCell.Border = Rectangle.BOX;
+        //        headerCell.BorderWidth = 1f;
+        //        headerCell.BorderColor = BaseColor.BLACK;
+        //        headerCell.Padding = 4;
+        //        headerCell.BackgroundColor = BaseColor.WHITE;
+        //        table.AddCell(headerCell);
+
+        //        // Add data rows
+        //        foreach (DataRow row in data.Rows)
+        //        {
+        //            PdfPCell cell;
+
+        //            cell = new PdfPCell(new Phrase(row["Type"].ToString(), cellFont));
+        //            cell.Border = Rectangle.BOX;
+        //            cell.BorderWidth = 1f;
+        //            cell.BorderColor = BaseColor.BLACK;
+        //            cell.Padding = 4;
+        //            cell.BackgroundColor = BaseColor.WHITE;
+        //            table.AddCell(cell);
+
+        //            cell = new PdfPCell(new Phrase(row["Site"].ToString(), cellFont));
+        //            cell.Border = Rectangle.BOX;
+        //            cell.BorderWidth = 1f;
+        //            cell.BorderColor = BaseColor.BLACK;
+        //            cell.Padding = 4;
+        //            cell.BackgroundColor = BaseColor.WHITE;
+        //            table.AddCell(cell);
+
+        //            cell = new PdfPCell(new Phrase(row["Message"].ToString(), messageFont));
+        //            cell.Border = Rectangle.BOX;
+        //            cell.BorderWidth = 1f;
+        //            cell.BorderColor = BaseColor.BLACK;
+        //            cell.Padding = 4;
+        //            cell.BackgroundColor = BaseColor.WHITE;
+        //            table.AddCell(cell);
+        //        }
+
+        //        document.Add(table);
+        //        document.Close();
+        //        writer.Close();
+
+        //        return ms.ToArray();
+        //    }
+        //}
+
+        private string GenerateHtmlReport(DataTable data)
+        {
+            StringBuilder html = new StringBuilder();
+
+            html.Append("<!DOCTYPE html>");
+            html.Append("<html>");
+            html.Append("<head>");
+            html.Append("<title>Water Quality Report</title>");
+            html.Append("<style>");
+            html.Append("@media print { body { margin: 0; } }");
+            html.Append("body { font-family: 'Courier New', monospace; margin: 20px; background: white; }");
+            html.Append("table { width: 100%; border-collapse: collapse; border: 1px solid #000; }");
+            html.Append("th { background-color: #fff; color: #000; padding: 6px 8px; text-align: left; ");
+            html.Append("border: 1px solid #000; font-weight: bold; font-size: 11pt; }");
+            html.Append("td { border: 1px solid #000; padding: 4px 8px; vertical-align: top; font-size: 10pt; }");
+            html.Append(".col-message { font-size: 9pt; }");
+            html.Append("</style>");
+            html.Append("</head>");
+            html.Append("<body>");
+            html.Append("<table>");
+            html.Append("<thead>");
+            html.Append("<tr>");
+            html.Append("<th style='width: 60px;'>Type</th>");
+            html.Append("<th style='width: 80px;'>Site</th>");
+            html.Append("<th>Message</th>");
+            html.Append("</tr>");
+            html.Append("</thead>");
+            html.Append("<tbody>");
+
+            foreach (DataRow row in data.Rows)
+            {
+                html.Append("<tr>");
+                html.Append("<td>" + Server.HtmlEncode(row["Type"].ToString()) + "</td>");
+                html.Append("<td>" + Server.HtmlEncode(row["Site"].ToString()) + "</td>");
+                html.Append("<td class='col-message'>" + Server.HtmlEncode(row["Message"].ToString()) + "</td>");
+                html.Append("</tr>");
+            }
+
+            html.Append("</tbody>");
+            html.Append("</table>");
+            html.Append("</body>");
+            html.Append("</html>");
+
+            return html.ToString();
+        }
+    }
+
+    public class PdfPageEventHelperInline : PdfPageEventHelper
+    {
+        private string _headerText;
+        public PdfPageEventHelperInline(string headerText)
+        {
+            _headerText = headerText;
+        }
+        public override void OnEndPage(PdfWriter writer, Document document)
+        {
+            PdfPTable header = new PdfPTable(1);
+            header.TotalWidth = document.PageSize.Width - document.LeftMargin - document.RightMargin;
+
+            PdfPCell cell = new PdfPCell(new Phrase(_headerText,
+                new Font(Font.FontFamily.COURIER, 12, Font.BOLD)))
+            {
+                Border = Rectangle.NO_BORDER,
+                HorizontalAlignment = Element.ALIGN_CENTER,
+                PaddingBottom = 8
+            };
+
+            header.AddCell(cell);
+
+            header.WriteSelectedRows(
+                0, -1,
+                document.LeftMargin,
+                document.PageSize.Height - 20,
+                writer.DirectContent
+            );
+        }
+    }
+
+}
+
+        
     
     

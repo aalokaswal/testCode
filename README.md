@@ -1,3 +1,29 @@
+FOR CLOSING POP Window
+----------------------------------
+
+protected void btnSaveAndClose_Click(object sender, EventArgs e)
+{
+    // Perform server-side actions here (e.g., save data to database)
+    // SaveData(); 
+
+    // Inject script to close the popup AFTER the page reloads on the client
+    string script = "closePopup();"; // Reusing the JavaScript function from Step 1
+
+    // Use ScriptManager if you have one, useful with UpdatePanels
+    if (ScriptManager.GetCurrent(this.Page) != null)
+    {
+        ScriptManager.RegisterStartupScript(this.Page, this.GetType(), "closeModalScript", script, true);
+    }
+    else // Standard Web Forms page
+    {
+        ClientScript.RegisterStartupScript(this.GetType(), "closeModalScript", script, true);
+    }
+}
+
+
+
+-------------------------------------------------------------------------------------------------
+
 For the time being Just Copy and paste below Private method in above class the one which had shared in above screen shot .
 ----------------------------------------------------------------------------------------------------------------------------
 private byte[] GeneratePdfReport(DataTable data)

@@ -649,6 +649,67 @@ namespace Report
 
 }
 
+----------------------------------------------------------------------------------
+
+public class PdfPageEventHelperInline : PdfPageEventHelper
+{
+    private string _runDateTime;
+    private PdfTemplate _totalPagesTemplate;
+    private BaseFont _bf;
+
+    public PdfPageEventHelperInline(string runDateTime)
+    {
+        _runDateTime = runDateTime;
+    }
+
+    public override void OnOpenDocument(PdfWriter writer, Document document)
+    {
+        _bf = BaseFont.CreateFont(BaseFont.COURIER, BaseFont.CP1252, BaseFont.NOT_EMBEDDED);
+        _totalPagesTemplate = writer.DirectContent.CreateTemplate(50, 12);
+    }
+
+    public override void OnEndPage(PdfWriter writer, Document document)
+    {
+        PdfContentByte cb = writer.DirectContent;
+
+        cb.BeginText();
+        cb.SetFontAndSize(_bf, 10);
+
+        // LEFT HEADER: Date/Time
+        cb.ShowTextAligned(
+            Element.ALIGN_LEFT,
+            $"Date/Time Sample Update Ran: {_runDateTime}",
+            document.LeftMargin,
+            document.PageSize.Height - 30,
+            0);
+
+        // RIGHT HEADER: Page X of
+        cb.ShowTextAligned(
+            Element.ALIGN_RIGHT,
+            $"Page: {writer.PageNumber} of",
+            document.PageSize.Width - document.RightMargin - 50,
+            document.PageSize.Height - 30,
+            0);
+
+        cb.EndText();
+
+        // Placeholder for total pages
+        cb.AddTemplate(
+            _totalPagesTemplate,
+            document.PageSize.Width - document.RightMargin,
+            document.PageSize.Height - 30);
+    }
+
+    public override void OnCloseDocument(PdfWriter writer, Document document)
+    {
+        _totalPagesTemplate.BeginText();
+        _totalPagesTemplate.SetFontAndSize(_bf, 10);
+        _totalPagesTemplate.ShowText(writer.PageNumber.ToString());
+        _totalPagesTemplate.EndText();
+    }
+}
+
+
         
     
     

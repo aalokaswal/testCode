@@ -710,6 +710,149 @@ public class PdfPageEventHelperInline : PdfPageEventHelper
 }
 
 
+-----------------------------------------------------------------------------------------------------------------------------------------
+
+public class PdfPageEventHelperInline : PdfPageEventHelper
+{
+    private string _runDateTime;
+    private PdfTemplate _totalPagesTemplate;
+    private BaseFont _bf;
+
+    public PdfPageEventHelperInline(string runDateTime)
+    {
+        _runDateTime = runDateTime;
+    }
+
+    public override void OnOpenDocument(PdfWriter writer, Document document)
+    {
+        _bf = BaseFont.CreateFont(BaseFont.COURIER, BaseFont.CP1252, BaseFont.NOT_EMBEDDED);
+        _totalPagesTemplate = writer.DirectContent.CreateTemplate(50, 12);
+    }
+
+    public override void OnEndPage(PdfWriter writer, Document document)
+    {
+        PdfContentByte cb = writer.DirectContent;
+
+        // ----- DATE/TIME BOX -----
+        PdfPTable headerTable = new PdfPTable(1);
+        headerTable.TotalWidth = 260;
+
+        PdfPCell dateCell = new PdfPCell(
+            new Phrase($"Date/Time Sample Update Ran: {_runDateTime}",
+            new Font(_bf, 10)))
+        {
+            Border = Rectangle.BOX,
+            Padding = 6
+        };
+
+        headerTable.AddCell(dateCell);
+
+        headerTable.WriteSelectedRows(
+            0, -1,
+            document.LeftMargin,
+            document.PageSize.Height - 25,
+            cb);
+
+        // ----- PAGE NUMBER -----
+        cb.BeginText();
+        cb.SetFontAndSize(_bf, 10);
+
+        cb.ShowTextAligned(
+            Element.ALIGN_RIGHT,
+            $"Page: {writer.PageNumber} of",
+            document.PageSize.Width - document.RightMargin - 50,
+            document.PageSize.Height - 35,
+            0);
+
+        cb.EndText();
+
+        cb.AddTemplate(
+            _totalPagesTemplate,
+            document.PageSize.Width - document.RightMargin,
+            document.PageSize.Height - 35);
+    }
+
+    public override void OnCloseDocument(PdfWriter writer, Document document)
+    {
+        _totalPagesTemplate.BeginText();
+        _totalPagesTemplate.SetFontAndSize(_bf, 10);
+        _totalPagesTemplate.ShowText(writer.PageNumber.ToString());
+        _totalPagesTemplate.EndText();
+    }
+}
+-----------------------------
+
+private byte[] GeneratePdfReport(DataTable data)
+{
+    using (MemoryStream ms = new MemoryStream())
+    {
+        Document document = new Document(PageSize.A4, 36, 36, 80, 36);
+        PdfWriter writer = PdfWriter.GetInstance(document, ms);
+
+        string runDateTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+        writer.PageEvent = new PdfPageEventHelperInline(runDateTime);
+
+        document.Open();
+
+        BaseFont bf = BaseFont.CreateFont(BaseFont.COURIER, BaseFont.CP1252, BaseFont.NOT_EMBEDDED);
+        Font normalFont = new Font(bf, 10, Font.NORMAL);
+        Font underlineFont = new Font(bf, 10, Font.UNDERLINE);
+
+        PdfPTable table = new PdfPTable(3);
+        table.WidthPercentage = 100;
+        table.SetWidths(new float[] { 0.8f, 1.0f, 6.0f });
+
+        // Column headers
+        table.AddCell(new PdfPCell(new Phrase("Type", normalFont)) { Border = Rectangle.NO_BORDER });
+        table.AddCell(new PdfPCell(new Phrase("Site", normalFont)) { Border = Rectangle.NO_BORDER });
+        table.AddCell(new PdfPCell(new Phrase("Message", normalFont)) { Border = Rectangle.NO_BORDER });
+
+        string previousType = null;
+
+        foreach (DataRow row in data.Rows)
+        {
+            PdfPCell cell;
+
+            // ---- TYPE (Suppress repetition) ----
+            string currentType = row["Type"].ToString();
+            string displayType = currentType == previousType ? string.Empty : currentType;
+
+            cell = new PdfPCell(new Phrase(displayType, normalFont))
+            {
+                Border = Rectangle.NO_BORDER,
+                VerticalAlignment = Element.ALIGN_TOP
+            };
+            table.AddCell(cell);
+
+            previousType = currentType;
+
+            // ---- SITE ----
+            cell = new PdfPCell(new Phrase(row["Site"].ToString(), normalFont))
+            {
+                Border = Rectangle.NO_BORDER,
+                VerticalAlignment = Element.ALIGN_TOP
+            };
+            table.AddCell(cell);
+
+            // ---- MESSAGE ----
+            cell = new PdfPCell(new Phrase(row["Message"].ToString(), underlineFont))
+            {
+                Border = Rectangle.NO_BORDER,
+                VerticalAlignment = Element.ALIGN_TOP
+            };
+            table.AddCell(cell);
+        }
+
+        document.Add(table);
+        document.Close();
+        writer.Close();
+
+        return ms.ToArray();
+    }
+}
+
+
+
         
     
     

@@ -782,6 +782,64 @@ public class PdfPageEventHelperInline : PdfPageEventHelper
 }
 -----------------------------
 
+public override void OnEndPage(PdfWriter writer, Document document)
+{
+    PdfContentByte cb = writer.DirectContent;
+
+    Font font = new Font(_bf, 10);
+
+    float yPos = document.PageSize.Height - 35;
+
+    // -------- LABEL TEXT (outside box) --------
+    ColumnText.ShowTextAligned(
+        cb,
+        Element.ALIGN_LEFT,
+        new Phrase("Date/Time Sample Update Ran:", font),
+        document.LeftMargin,
+        yPos,
+        0);
+
+    // -------- DATE VALUE INSIDE BOX --------
+    PdfPTable dateTable = new PdfPTable(1);
+    dateTable.TotalWidth = 120;
+
+    PdfPCell dateCell = new PdfPCell(
+        new Phrase(_runDateTime, font))
+    {
+        Border = Rectangle.BOX,
+        Padding = 4,
+        HorizontalAlignment = Element.ALIGN_CENTER
+    };
+
+    dateTable.AddCell(dateCell);
+
+    dateTable.WriteSelectedRows(
+        0, -1,
+        document.LeftMargin + 190,   // Adjust spacing after label
+        yPos + 12,
+        cb);
+
+    // -------- PAGE NUMBER (RIGHT SIDE) --------
+    cb.BeginText();
+    cb.SetFontAndSize(_bf, 10);
+
+    cb.ShowTextAligned(
+        Element.ALIGN_RIGHT,
+        $"Page: {writer.PageNumber} of",
+        document.PageSize.Width - document.RightMargin - 50,
+        yPos,
+        0);
+
+    cb.EndText();
+
+    cb.AddTemplate(
+        _totalPagesTemplate,
+        document.PageSize.Width - document.RightMargin,
+        yPos);
+}
+
+----------------------
+
 private byte[] GeneratePdfReport(DataTable data)
 {
     using (MemoryStream ms = new MemoryStream())

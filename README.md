@@ -1,4 +1,54 @@
 
+public static int UpdateRow(
+    SqlConnection connection,
+    DataRow row,
+    string tableName,
+    int id)
+{
+    if (row == null)
+        throw new ArgumentNullException(nameof(row));
+
+    if (string.IsNullOrWhiteSpace(tableName))
+        throw new ArgumentException("Table name is required");
+
+    List<string> setClauses = new List<string>();
+    SqlCommand cmd = new SqlCommand();
+    cmd.Connection = connection;
+
+    foreach (DataColumn column in row.Table.Columns)
+    {
+        // Skip primary key
+        if (column.ColumnName.Equals("Id", StringComparison.OrdinalIgnoreCase))
+            continue;
+
+        string paramName = "@" + column.ColumnName;
+
+        setClauses.Add($"{column.ColumnName} = {paramName}");
+
+        object value = row[column.ColumnName] ?? DBNull.Value;
+        cmd.Parameters.AddWithValue(paramName, value);
+    }
+
+    if (setClauses.Count == 0)
+        throw new InvalidOperationException("No columns to update");
+
+    cmd.Parameters.Add("@Id", SqlDbType.Int).Value = id;
+
+    cmd.CommandText = $@"
+        UPDATE {tableName}
+        SET {string.Join(", ", setClauses)}
+        WHERE Id = @Id";
+
+    if (connection.State != ConnectionState.Open)
+        connection.Open();
+
+    return cmd.ExecuteNonQuery();
+}
+
+
+
+
+
 Update the row 
 ---------------------------
 

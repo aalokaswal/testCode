@@ -1,3 +1,31 @@
+
+Update the row 
+---------------------------
+
+DataRow row = dataTable.Rows[0];
+
+using (SqlConnection con = new SqlConnection(connectionString))
+{
+    string sql = @"UPDATE Employee
+                   SET Name = @Name,
+                       Age = @Age,
+                       Salary = @Salary
+                   WHERE Id = @Id";
+
+    using (SqlCommand cmd = new SqlCommand(sql, con))
+    {
+        cmd.Parameters.Add("@Name", SqlDbType.VarChar).Value = row["Name"];
+        cmd.Parameters.Add("@Age", SqlDbType.Int).Value = row["Age"];
+        cmd.Parameters.Add("@Salary", SqlDbType.Decimal).Value = row["Salary"];
+        cmd.Parameters.Add("@Id", SqlDbType.Int).Value = row["Id"]; // Primary Key
+
+        con.Open();
+        cmd.ExecuteNonQuery();
+    }
+}
+
+
+
 --------------------------------------------------------------------------------------------------
 Correct line of code for thickness
 -----------------------------------------

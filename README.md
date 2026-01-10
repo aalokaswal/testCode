@@ -1,4 +1,292 @@
+FOR UPDATING DATA
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+using Microsoft.Ajax.Utilities;
+using System;
+using System.Collections.Generic;
+using System.Configuration;
+using System.Data.SqlClient;
+using System.Linq;
+using System.Text;
+using System.Web;
+using System.Web.UI;
+using System.Web.UI.WebControls;
 
+namespace Report
+{
+    //public partial class ChemicalData : System.Web.UI.Page
+    //{
+    //    protected void Page_Load(object sender, EventArgs e)
+    //    {
+
+    //    }
+    //}
+
+    public partial class ChemicalData : System.Web.UI.Page
+    {
+        private string connectionString = @"Server=localhost\SQLEXPRESS02;Initial Catalog=ChemicalAnalysisDB;Integrated Security=True";
+
+        protected void Page_Load(object sender, EventArgs e)
+        {
+            if (!IsPostBack)
+            {
+                LoadData();
+            }
+        }
+
+        private void LoadData()
+        {
+            Session["id"] = 1;
+            if (Session["id"] == null)
+            {
+                ShowMessage("Session ID not found. Please login again.", false);
+                return;
+            }
+            int recordId = Convert.ToInt32(Session["id"]);
+            using (SqlConnection conn = new SqlConnection(connectionString))
+            {
+                try
+                {
+                    conn.Open();
+                    string query = @"SELECT * FROM ChemicalData WHERE Id = @Id";
+
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@Id", recordId);
+
+                        using (SqlDataReader reader = cmd.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                // Populate all textboxes with data from database
+                                txtAlkalinity.Text = GetSafeString(reader, "Alkalinity");
+                                txtAluminum.Text = GetSafeString(reader, "Aluminum");
+                                txtAntimony.Text = GetSafeString(reader, "Antimony");
+                                txtArsenic.Text = GetSafeString(reader, "Arsenic");
+                                txtBarium.Text = GetSafeString(reader, "Barium");
+                                txtBeryllium.Text = GetSafeString(reader, "Beryllium");
+                                txtBOD.Text = GetSafeString(reader, "BOD");
+                                txtBoron.Text = GetSafeString(reader, "Boron");
+                                txtBromide.Text = GetSafeString(reader, "Bromide");
+                                txtCadmium.Text = GetSafeString(reader, "Cadmium");
+                                txtCalcium.Text = GetSafeString(reader, "Calcium");
+                                txtChloride.Text = GetSafeString(reader, "Chloride");
+                                txtChloroph.Text = GetSafeString(reader, "Chloroph");
+                                txtChromium.Text = GetSafeString(reader, "Chromium");
+                                txtCobalt.Text = GetSafeString(reader, "Cobalt");
+                                txtFieldnotes.Text = GetSafeString(reader, "Fieldnotes");
+                                txtSampledate.Text = GetSafeString(reader, "Sampledate");
+                                txtCollectors.Text = GetSafeString(reader, "Collectors");
+                                txtCOD.Text = GetSafeString(reader, "COD");
+                                txtCopper.Text = GetSafeString(reader, "Copper");
+                                txtDisOxy.Text = GetSafeString(reader, "DisOxy");
+                                txtEColi.Text = GetSafeString(reader, "EColi");
+                                txtEntero.Text = GetSafeString(reader, "Entero");
+                                txtFecColi.Text = GetSafeString(reader, "FecColi");
+                                txtFecStrp.Text = GetSafeString(reader, "FecStrp");
+                                txtFluride.Text = GetSafeString(reader, "Fluride");
+                                txtIron.Text = GetSafeString(reader, "Iron");
+                                txtKjeldahl.Text = GetSafeString(reader, "Kjeldahl");
+                                txtLead.Text = GetSafeString(reader, "Lead");
+                                txtMagnesium.Text = GetSafeString(reader, "Magnesium");
+                                txtManganese.Text = GetSafeString(reader, "Manganese");
+                                txtMercury.Text = GetSafeString(reader, "Mercury");
+                                txtMolybdenum.Text = GetSafeString(reader, "Molybdenum");
+                                txtNickel.Text = GetSafeString(reader, "Nickel");
+                                txtNitrate.Text = GetSafeString(reader, "Nitrate");
+                                txtNO2ANO3.Text = GetSafeString(reader, "NO2ANO3");
+                                txtOrthPhos.Text = GetSafeString(reader, "OrthPhos");
+                                txtPar.Text = GetSafeString(reader, "Par");
+                                txtPHField.Text = GetSafeString(reader, "PHField");
+                                txtPHLab.Text = GetSafeString(reader, "PHLab");
+                                txtPotassium.Text = GetSafeString(reader, "Potassium");
+                                txtSecchi.Text = GetSafeString(reader, "Secchi");
+                                txtSelenium.Text = GetSafeString(reader, "Selenium");
+                                txtSilica.Text = GetSafeString(reader, "Silica");
+                                txtSilver.Text = GetSafeString(reader, "Silver");
+                                txtSodium.Text = GetSafeString(reader, "Sodium");
+                                txtSpecCondFic.Text = GetSafeString(reader, "SpecCondFic");
+                                txtSpecCond.Text = GetSafeString(reader, "SpecCond");
+                                txtLabnum.Text = GetSafeString(reader, "Labnum");
+                                txtStrontium.Text = GetSafeString(reader, "Strontium");
+                                txtNitrite.Text = GetSafeString(reader, "Nitrite");
+                                txtTempCast.Text = GetSafeString(reader, "TempCast");
+                                txtThallium.Text = GetSafeString(reader, "Thallium");
+                                txtTOC.Text = GetSafeString(reader, "TOC");
+                                txtTotColi.Text = GetSafeString(reader, "TotColi");
+                                txtTotHard.Text = GetSafeString(reader, "TotHard");
+                                txtTotNierd.Text = GetSafeString(reader, "TotNierd");
+                                txtTSS.Text = GetSafeString(reader, "TSS");
+                                txtTurbidityFid.Text = GetSafeString(reader, "TurbidityFid");
+                                txtSulfate.Text = GetSafeString(reader, "Sulfate");
+                                txtTurbidity.Text = GetSafeString(reader, "Turbidity");
+                                txtZinc.Text = GetSafeString(reader, "Zinc");
+                                txtUranium.Text = GetSafeString(reader, "Uranium");
+                                txtSava.Text = GetSafeString(reader, "Sava");
+                            }
+                            else
+                            {
+                                ShowMessage("No record found for the given ID.", false);
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    ShowMessage("Error loading data: " + ex.Message, false);
+                }
+            }
+        }
+
+        protected void btnSave_Click(object sender, EventArgs e)
+        {
+            if (Session["id"] == null)
+            {
+                ShowMessage("Session ID not found. Please login again.", false);
+                return;
+            }
+
+            int recordId = Convert.ToInt32(Session["id"]);
+
+            // Prepare the column data dictionary
+            Dictionary<string, object> columnData = new Dictionary<string, object>
+            {
+                { "Alkalinity", GetTextBoxValue(txtAlkalinity.Text) },
+                { "Aluminum", GetTextBoxValue(txtAluminum.Text) },
+                { "Antimony", GetTextBoxValue(txtAntimony.Text) },
+                { "Arsenic", GetTextBoxValue(txtArsenic.Text) },
+                { "Barium", GetTextBoxValue(txtBarium.Text) },
+                { "Beryllium", GetTextBoxValue(txtBeryllium.Text) },
+                { "BOD", GetTextBoxValue(txtBOD.Text) },
+                { "Boron", GetTextBoxValue(txtBoron.Text) },
+                { "Bromide", GetTextBoxValue(txtBromide.Text) },
+                { "Cadmium", GetTextBoxValue(txtCadmium.Text) },
+                { "Calcium", GetTextBoxValue(txtCalcium.Text) },
+                { "Chloride", GetTextBoxValue(txtChloride.Text) },
+                { "Chloroph", GetTextBoxValue(txtChloroph.Text) },
+                { "Chromium", GetTextBoxValue(txtChromium.Text) },
+                { "Cobalt", GetTextBoxValue(txtCobalt.Text) },
+                { "Fieldnotes", GetTextBoxValue(txtFieldnotes.Text) },
+                { "Sampledate", GetTextBoxValue(txtSampledate.Text) },
+                { "Collectors", GetTextBoxValue(txtCollectors.Text) },
+                { "COD", GetTextBoxValue(txtCOD.Text) },
+                { "Copper", GetTextBoxValue(txtCopper.Text) },
+                { "DisOxy", GetTextBoxValue(txtDisOxy.Text) },
+                { "EColi", GetTextBoxValue(txtEColi.Text) },
+                { "Entero", GetTextBoxValue(txtEntero.Text) },
+                { "FecColi", GetTextBoxValue(txtFecColi.Text) },
+                { "FecStrp", GetTextBoxValue(txtFecStrp.Text) },
+                { "Fluride", GetTextBoxValue(txtFluride.Text) },
+                { "Iron", GetTextBoxValue(txtIron.Text) },
+                { "Kjeldahl", GetTextBoxValue(txtKjeldahl.Text) },
+                { "Lead", GetTextBoxValue(txtLead.Text) },
+                { "Magnesium", GetTextBoxValue(txtMagnesium.Text) },
+                { "Manganese", GetTextBoxValue(txtManganese.Text) },
+                { "Mercury", GetTextBoxValue(txtMercury.Text) },
+                { "Molybdenum", GetTextBoxValue(txtMolybdenum.Text) },
+                { "Nickel", GetTextBoxValue(txtNickel.Text) },
+                { "Nitrate", GetTextBoxValue(txtNitrate.Text) },
+                { "NO2ANO3", GetTextBoxValue(txtNO2ANO3.Text) },
+                { "OrthPhos", GetTextBoxValue(txtOrthPhos.Text) },
+                { "Par", GetTextBoxValue(txtPar.Text) },
+                { "PHField", GetTextBoxValue(txtPHField.Text) },
+                { "PHLab", GetTextBoxValue(txtPHLab.Text) },
+                { "Potassium", GetTextBoxValue(txtPotassium.Text) },
+                { "Secchi", GetTextBoxValue(txtSecchi.Text) },
+                { "Selenium", GetTextBoxValue(txtSelenium.Text) },
+                { "Silica", GetTextBoxValue(txtSilica.Text) },
+                { "Silver", GetTextBoxValue(txtSilver.Text) },
+                { "Sodium", GetTextBoxValue(txtSodium.Text) },
+                { "SpecCondFic", GetTextBoxValue(txtSpecCondFic.Text) },
+                { "SpecCond", GetTextBoxValue(txtSpecCond.Text) },
+                { "Labnum", GetTextBoxValue(txtLabnum.Text) },
+                { "Strontium", GetTextBoxValue(txtStrontium.Text) },
+                { "Nitrite", GetTextBoxValue(txtNitrite.Text) },
+                { "TempCast", GetTextBoxValue(txtTempCast.Text) },
+                { "Thallium", GetTextBoxValue(txtThallium.Text) },
+                { "TOC", GetTextBoxValue(txtTOC.Text) },
+                { "TotColi", GetTextBoxValue(txtTotColi.Text) },
+                { "TotHard", GetTextBoxValue(txtTotHard.Text) },
+                { "TotNierd", GetTextBoxValue(txtTotNierd.Text) },
+                { "TSS", GetTextBoxValue(txtTSS.Text) },
+                { "TurbidityFid", GetTextBoxValue(txtTurbidityFid.Text) },
+                { "Sulfate", GetTextBoxValue(txtSulfate.Text) },
+                { "Turbidity", GetTextBoxValue(txtTurbidity.Text) },
+                { "Zinc", GetTextBoxValue(txtZinc.Text) },
+                { "Uranium", GetTextBoxValue(txtUranium.Text) },
+                { "Sava", GetTextBoxValue(txtSava.Text) }
+            };
+
+            // Call the dynamic update function
+            bool success = UpdateRecord("ChemicalData", "Id", recordId, columnData);
+
+            if (success)
+            {
+                ShowMessage("Data saved successfully!", true);
+            }
+            else
+            {
+                ShowMessage("Error saving data. Please check the logs.", false);
+            }
+        }
+
+        private bool UpdateRecord(string tableName, string idColumnName, object idValue, Dictionary<string, object> columnData)
+        {
+            if (columnData == null || columnData.Count == 0)
+            {
+                ShowMessage("No data to update.", false);
+                return false;
+            }
+
+            using (SqlConnection conn = new SqlConnection(connectionString))
+            {
+                try
+                {
+                    conn.Open();
+                    StringBuilder queryBuilder = new StringBuilder();
+                    queryBuilder.Append($"UPDATE {tableName} SET ");
+                    List<string> setStatements = new List<string>();
+                    foreach (var column in columnData.Keys)
+                        setStatements.Add($"{column} = @{column}");
+                    queryBuilder.Append(string.Join(", ", setStatements));
+                    queryBuilder.Append($" WHERE {idColumnName} = @IdValue");
+                    string query = queryBuilder.ToString();
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@IdValue", idValue);
+                        foreach (var kvp in columnData)
+                            cmd.Parameters.AddWithValue($"@{kvp.Key}", kvp.Value ?? DBNull.Value);
+                        int rowsAffected = cmd.ExecuteNonQuery();
+                        return rowsAffected > 0;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    ShowMessage("Error updating record: " + ex.Message, false);
+                    return false;
+                }
+            }
+        }
+
+        private string GetSafeString(SqlDataReader reader, string columnName)
+        {
+            int ordinal = reader.GetOrdinal(columnName);
+            return reader.IsDBNull(ordinal) ? string.Empty : reader.GetString(ordinal);
+        }
+
+        private object GetTextBoxValue(string text)
+        {
+            return string.IsNullOrWhiteSpace(text) ? (object)DBNull.Value : text.Trim();
+        }
+
+        private void ShowMessage(string message, bool isSuccess)
+        {
+            lblMessage.Text = message;
+            lblMessage.CssClass = isSuccess ? "message success" : "message error";
+        }
+    }
+}
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 public static int UpdateRow(
     SqlConnection connection,
     DataRow row,

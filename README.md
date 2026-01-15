@@ -1,3 +1,101 @@
+ private bool UpsertRecord(string tableName,string idColumnName,object idValue,Dictionary<string, object> columnData)
+ {
+     if (columnData == null || columnData.Count == 0)
+     {
+         ShowMessage("No data to save.", false);
+         return false;
+     }
+
+     using (SqlConnection conn = new SqlConnection(connectionString))
+     {
+         try
+         {
+             conn.Open();
+
+             // ============================
+             // 1️⃣ CHECK IF RECORD EXISTS
+             // ============================
+             string existsQuery =
+                 $"SELECT COUNT(1) FROM {tableName} WHERE {idColumnName} = @IdValue";
+
+             bool recordExists;
+             using (SqlCommand existsCmd = new SqlCommand(existsQuery, conn))
+             {
+                 existsCmd.Parameters.AddWithValue("@IdValue", idValue);
+                 recordExists = Convert.ToInt32(existsCmd.ExecuteScalar()) > 0;
+             }
+
+             // ============================
+             // 2️⃣ UPDATE IF EXISTS
+             // ============================
+             if (recordExists)
+             {
+                 StringBuilder updateQuery = new StringBuilder();
+                 updateQuery.Append($"UPDATE {tableName} SET ");
+
+                 List<string> setStatements = new List<string>();
+                 foreach (var column in columnData.Keys)
+                     setStatements.Add($"{column} = @{column}");
+
+                 updateQuery.Append(string.Join(", ", setStatements));
+                 updateQuery.Append($" WHERE {idColumnName} = @IdValue");
+
+                 using (SqlCommand updateCmd = new SqlCommand(updateQuery.ToString(), conn))
+                 {
+                     updateCmd.Parameters.AddWithValue("@IdValue", idValue);
+
+                     foreach (var kvp in columnData)
+                         updateCmd.Parameters.AddWithValue($"@{kvp.Key}", kvp.Value ?? DBNull.Value);
+
+                     return updateCmd.ExecuteNonQuery() > 0;
+                 }
+             }
+
+             // ============================
+             // 3️⃣ INSERT IF NOT EXISTS
+             // ============================
+             columnData[idColumnName] = idValue;
+
+             string columns = string.Join(", ", columnData.Keys);
+             string parameters = string.Join(", ", columnData.Keys.Select(c => "@" + c));
+
+             string insertQuery =
+                 $"INSERT INTO {tableName} ({columns}) VALUES ({parameters})";
+
+             using (SqlCommand insertCmd = new SqlCommand(insertQuery, conn))
+             {
+                 foreach (var kvp in columnData)
+                     insertCmd.Parameters.AddWithValue($"@{kvp.Key}", kvp.Value ?? DBNull.Value);
+
+                 return insertCmd.ExecuteNonQuery() > 0;
+             }
+         }
+         catch (Exception ex)
+         {
+             ShowMessage("Error saving record: " + ex.Message, false);
+             return false;
+         }
+     }
+ }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 FOR UPDATING DATA
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 using Microsoft.Ajax.Utilities;

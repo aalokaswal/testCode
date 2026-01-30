@@ -1,3 +1,322 @@
+
+  <asp:Button ID="btnCopy" runat="server" 
+     Text="C" 
+     CssClass="btn-copy"
+     CommandName="CopyRecord"
+     CommandArgument='<%# Eval("LASMPLID") %>'
+     OnClientClick='<%# "openCopyPopup(" + Eval("LASMPLID") + "); return false;" %>' />
+
+     --
+     function openCopyPopup(lasmplid) {
+    var width = 500;
+    var height = 500;
+    var left = (screen.width - width) / 2;
+    var top = (screen.height - height) / 2;
+
+    // Open popup with no toolbars, scrollbars, or resize capability
+    window.open('CopyConfirm.aspx?id=' + lasmplid, 'CopyWindow',
+        'width=' + width +
+        ',height=' + height +
+        ',left=' + left +
+        ',top=' + top +
+        ',toolbar=no' +
+        ',location=no' +
+        ',directories=no' +
+        ',status=no' +
+        ',menubar=no' +
+        ',scrollbars=no' +
+        ',resizable=no' +
+        ',copyhistory=no');
+
+    return false;
+}
+
+-------------------------------------------------------------------------------------------
+
+
+
+<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="CopyConfirm.aspx.cs" Inherits="Report.CopyConfirm" %>
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head runat="server">
+    <title>Copy Confirmation</title>
+   <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .confirm-container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .confirm-message {
+            font-size: 16px;
+            margin-bottom: 30px;
+            color: #333;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 10px 30px;
+            font-size: 14px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #545b62;
+        }
+    </style>
+    <script type="text/javascript">
+        // Center the window on load
+        window.onload = function() {
+            // Remove window controls (works in some browsers)
+            window.resizeTo(500, 350);
+            
+            // Center the window
+            var width = 500;
+            var height = 350;
+            var left = (screen.width - width) / 2;
+            var top = (screen.height - height) / 2;
+            window.moveTo(left, top);
+        };
+
+        // Prevent context menu
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+        });
+    </script>
+</head>
+<body>
+    <form id="form1" runat="server">
+        <div class="confirm-container">
+            <div class="confirm-message">
+                <h3>Copy Record Confirmation</h3>
+                <p>Are you sure you want to copy this record?</p>
+            </div>
+            <div class="button-container">
+                <asp:Button ID="btnCopy" runat="server" Text="Copy" CssClass="btn btn-primary" OnClick="btnCopy_Click" />
+                <asp:Button ID="btnCancel" runat="server" Text="Cancel" CssClass="btn btn-secondary" OnClientClick="window.close(); return false;" />
+            </div>
+        </div>
+    </form>
+</body>
+</html>
+
+----------------------------------------------------------------------------------------------------------------------------
+
+using System;
+using System.Data;
+using System.Data.SqlClient;
+using System.Web.UI;
+
+namespace Report
+{
+    public partial class CopyConfirm : System.Web.UI.Page
+    {
+        private string connectionString = @"Server=localhost\SQLEXPRESS02;Initial Catalog=BEFS_ADMIN;Integrated Security=True";
+
+        protected void Page_Load(object sender, EventArgs e)
+        {
+            if (!IsPostBack)
+            {
+                // Get the ID from query string
+                string id = Request.QueryString["id"];
+                if (!string.IsNullOrEmpty(id))
+                {
+                    Session["CopyId"] = id;
+                }
+            }
+        }
+
+        protected void btnCopy_Click(object sender, EventArgs e)
+        {
+            string id = Session["CopyId"]?.ToString();
+
+            if (!string.IsNullOrEmpty(id))
+            {
+                CopyRecordInDb(id);
+
+                // Close the popup and refresh parent window
+                string script = @"
+                    if (window.opener && !window.opener.closed) {
+                        window.opener.location.reload();
+                    }
+                    window.close();";
+
+                ScriptManager.RegisterStartupScript(this, GetType(), "closeWindow", script, true);
+            }
+        }
+
+        private void CopyRecordInDb(string id)
+        {
+
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+
+                    // Start a transaction
+                    using (SqlTransaction transaction = conn.BeginTransaction())
+                    {
+                        try
+                        {
+                            // Get the maximum LASMPLID to generate new ID
+                            string getMaxIdQuery = "SELECT ISNULL(MAX(LASMPLID), 0) + 1 FROM dbo.SC_CHM_ALL";
+                            long newLasmplid;
+
+                            using (SqlCommand cmdMaxId = new SqlCommand(getMaxIdQuery, conn, transaction))
+                            {
+                                newLasmplid = Convert.ToInt64(cmdMaxId.ExecuteScalar());
+                            }
+
+                            // Copy the record from SC_CHM_ALL
+                            string copySCChmQuery = @"
+                                INSERT INTO dbo.SC_CHM_ALL (
+                                    PROG_CODE, SITE_NAME, SITEID_NO, SITE_CNTY, HUC8, BASIN, SITE_LOCT,
+                                    COL_DATEX, COL_DATE, COL_TIME, ACETOCHLR, ACETOCHLRR, ALACHLOR, ALACHLORR,
+                                    ALDRIN, ALDRINR, ALKALINTY, ALKALINTYR, A_BHC, A_BHCR, ALUMINUM, ALUMINUMR,
+                                    AMMONIA, AMMONIAR, ANTIMONY, ANTIMONYR, ARSENIC, ARSENICR, ATRAZIN, ATRAZINR,
+                                    BARIUM, BARIUMR, BERYLLIUM, BERYLLIUMR, B_BHC, B_BHCR, BOD, BODR, BORON, BORONR,
+                                    BROMIDE, BROMIDER, BUTACHLOR, BUTACHLORR, CADMIUM, CADMIUMR, CALCIUM, CALCIUMR,
+                                    CARBOFURN, CARBOFURNR, CHLORDANE, CHLORDANER, CHLORIDE, CHLORIDER, CHROMIUM, CHROMIUMR,
+                                    COBALT, COBALTR, COPPER, COPPERR, CYANAZINE, CYANAZINER, DACTHAL, DACTHALR,
+                                    DEEATRAZN, DEEATRAZNR, DISATRAZN, DISATRAZNR, D_BHC, D_BHCR, DIAZINON, DIAZINONR,
+                                    DIELDRIN, DIELDRINR, DISOXY, DISOXYR, ENDOSULF1, ENDOSULF1R, ENDOSULF2, ENDOSULF2R,
+                                    ENDRIN, ENDRINR, FECCOLI, FECCOLIR, FECSTRP, FECSTRPR, FLUORIDE, FLUORIDER,
+                                    LINDANE, LINDANER, HEPTCHLR, HEPTCHLRR, HEPTCHLRE, HEPTCHLRER, HEPTCHLRB, HEPTCHLRBR,
+                                    IRON, IRONR, LEAD, LEADR, MAGNESIUM, MAGNESIUMR, MANGANESE, MANGANESER,
+                                    MERCURY, MERCURYR, METOCLR, METOCLRR, MTRBUZI, MTRBUZIR, MOLYBDENM, MOLYBDENMR,
+                                    NICKEL, NICKELR, NITRATE, NITRATER, NITRITE, NITRITER, NO2_NO3, NO2_NO3R,
+                                    ORTH_PHOS, ORTH_PHOSR, PP_DDD, PP_DDDR, PP_DDE, PP_DDER, PP_DDT, PP_DDTR,
+                                    PCB_1016, PCB_1016R, PCB_1221, PCB_1221R, PCB_1232, PCB_1232R, PCB_1242, PCB_1242R,
+                                    PCB_1248, PCB_1248R, PCB_1254, PCB_1254R, PCB_1260, PCB_1260R, PHLAB, PHLABR,
+                                    PHFIELD, PHFIELDR, PICLORAM, PICLORAMR, POTTASIUM, POTTASIUMR, PROMETON, PROMETONR,
+                                    PROPACHLR, PROPACHLRR, PROPAZINE, PROPAZINER, SELENIUM, SELENIUMR, SILICA, SILICAR,
+                                    SILVER, SILVERR, SIMAZINE, SIMAZINER, SODIUM, SODIUMR, SPEC_COND, SPEC_CONDR,
+                                    SULFATE, SULFATER, TEMP_CENT, TEMP_CENTR, THALLIUM, THALLIUMR, TDS, TDSR,
+                                    TOTHARD, TOTHARDR, PHOSPHU, PHOSPHUR, TSS, TSSR, TOXAPHENE, TOXAPHENER,
+                                    TURBIDITY, TURBIDITYR, VANADIUM, VANADIUMR, X24D, X24DR, X245T, X245TR,
+                                    ZINC, ZINCR, LABNUM, LASMPLID, HCCP, HCCPR, X245TP, X245TPR, DURSBAN, DURSBANR,
+                                    TOC, TOCR, KJELDAHL, KJELDAHLR, STRONTIUM, STRONTIUMR, MTHOXYCHL, MTHOXYCHLR,
+                                    ENDOSULFS, ENDOSULFSR, DSTAMP, CHLOROPH, CHLOROPHR, ECOLI, ECOLIR, BROMACIL, BROMACILR,
+                                    PCP, PCPR, COD, CODR, CHARD, CHARDR, OPDDT, OPDDTR, PCBS, PCBSR, ZOOPLANK, ZOOPLANKR,
+                                    TSTAMP, DEPTH, TOTCOLI, TOTCOLIR, SECCHI, SECCHIR, PAR, PARR, ENTERO, ENTEROR,
+                                    URANIUM, URANIUMR, TURBFLD, TURBFLDR, DISOXYFLD, DISOXYFLDR, CONDFLD, CONDFLDR, NUM_PARMS
+                                )
+                                SELECT 
+                                    PROG_CODE, SITE_NAME, SITEID_NO, SITE_CNTY, HUC8, BASIN, SITE_LOCT,
+                                    COL_DATEX, COL_DATE, COL_TIME, ACETOCHLR, ACETOCHLRR, ALACHLOR, ALACHLORR,
+                                    ALDRIN, ALDRINR, ALKALINTY, ALKALINTYR, A_BHC, A_BHCR, ALUMINUM, ALUMINUMR,
+                                    AMMONIA, AMMONIAR, ANTIMONY, ANTIMONYR, ARSENIC, ARSENICR, ATRAZIN, ATRAZINR,
+                                    BARIUM, BARIUMR, BERYLLIUM, BERYLLIUMR, B_BHC, B_BHCR, BOD, BODR, BORON, BORONR,
+                                    BROMIDE, BROMIDER, BUTACHLOR, BUTACHLORR, CADMIUM, CADMIUMR, CALCIUM, CALCIUMR,
+                                    CARBOFURN, CARBOFURNR, CHLORDANE, CHLORDANER, CHLORIDE, CHLORIDER, CHROMIUM, CHROMIUMR,
+                                    COBALT, COBALTR, COPPER, COPPERR, CYANAZINE, CYANAZINER, DACTHAL, DACTHALR,
+                                    DEEATRAZN, DEEATRAZNR, DISATRAZN, DISATRAZNR, D_BHC, D_BHCR, DIAZINON, DIAZINONR,
+                                    DIELDRIN, DIELDRINR, DISOXY, DISOXYR, ENDOSULF1, ENDOSULF1R, ENDOSULF2, ENDOSULF2R,
+                                    ENDRIN, ENDRINR, FECCOLI, FECCOLIR, FECSTRP, FECSTRPR, FLUORIDE, FLUORIDER,
+                                    LINDANE, LINDANER, HEPTCHLR, HEPTCHLRR, HEPTCHLRE, HEPTCHLRER, HEPTCHLRB, HEPTCHLRBR,
+                                    IRON, IRONR, LEAD, LEADR, MAGNESIUM, MAGNESIUMR, MANGANESE, MANGANESER,
+                                    MERCURY, MERCURYR, METOCLR, METOCLRR, MTRBUZI, MTRBUZIR, MOLYBDENM, MOLYBDENMR,
+                                    NICKEL, NICKELR, NITRATE, NITRATER, NITRITE, NITRITER, NO2_NO3, NO2_NO3R,
+                                    ORTH_PHOS, ORTH_PHOSR, PP_DDD, PP_DDDR, PP_DDE, PP_DDER, PP_DDT, PP_DDTR,
+                                    PCB_1016, PCB_1016R, PCB_1221, PCB_1221R, PCB_1232, PCB_1232R, PCB_1242, PCB_1242R,
+                                    PCB_1248, PCB_1248R, PCB_1254, PCB_1254R, PCB_1260, PCB_1260R, PHLAB, PHLABR,
+                                    PHFIELD, PHFIELDR, PICLORAM, PICLORAMR, POTTASIUM, POTTASIUMR, PROMETON, PROMETONR,
+                                    PROPACHLR, PROPACHLRR, PROPAZINE, PROPAZINER, SELENIUM, SELENIUMR, SILICA, SILICAR,
+                                    SILVER, SILVERR, SIMAZINE, SIMAZINER, SODIUM, SODIUMR, SPEC_COND, SPEC_CONDR,
+                                    SULFATE, SULFATER, TEMP_CENT, TEMP_CENTR, THALLIUM, THALLIUMR, TDS, TDSR,
+                                    TOTHARD, TOTHARDR, PHOSPHU, PHOSPHUR, TSS, TSSR, TOXAPHENE, TOXAPHENER,
+                                    TURBIDITY, TURBIDITYR, VANADIUM, VANADIUMR, X24D, X24DR, X245T, X245TR,
+                                    ZINC, ZINCR, LABNUM, @newLasmplid, HCCP, HCCPR, X245TP, X245TPR, DURSBAN, DURSBANR,
+                                    TOC, TOCR, KJELDAHL, KJELDAHLR, STRONTIUM, STRONTIUMR, MTHOXYCHL, MTHOXYCHLR,
+                                    ENDOSULFS, ENDOSULFSR, GETDATE(), CHLOROPH, CHLOROPHR, ECOLI, ECOLIR, BROMACIL, BROMACILR,
+                                    PCP, PCPR, COD, CODR, CHARD, CHARDR, OPDDT, OPDDTR, PCBS, PCBSR, ZOOPLANK, ZOOPLANKR,
+                                    GETDATE(), DEPTH, TOTCOLI, TOTCOLIR, SECCHI, SECCHIR, PAR, PARR, ENTERO, ENTEROR,
+                                    URANIUM, URANIUMR, TURBFLD, TURBFLDR, DISOXYFLD, DISOXYFLDR, CONDFLD, CONDFLDR, NUM_PARMS
+                                FROM dbo.SC_CHM_ALL
+                                WHERE LASMPLID = @oldId";
+
+                            using (SqlCommand cmdCopy = new SqlCommand(copySCChmQuery, conn, transaction))
+                            {
+                                cmdCopy.Parameters.AddWithValue("@newLasmplid", newLasmplid);
+                                cmdCopy.Parameters.AddWithValue("@oldId", id);
+                                cmdCopy.ExecuteNonQuery();
+                            }
+
+                            // Copy from SCIONS table if exists
+                            //string copyScionsQuery = @"
+                            //    IF EXISTS (SELECT 1 FROM BEFS_ADMIN.SCIONS WHERE LASMPLID = @oldId)
+                            //    BEGIN
+                            //        INSERT INTO dbo.SCIONS (LASMPLID, ION_NAME, ION_VALUE, ION_REMARK)
+                            //        SELECT @newLasmplid, ION_NAME, ION_VALUE, ION_REMARK
+                            //        FROM dbo.SCIONS
+                            //        WHERE LASMPLID = @oldId
+                            //    END";
+
+                            //using (SqlCommand cmdCopyIons = new SqlCommand(copyScionsQuery, conn, transaction))
+                            //{
+                            //    cmdCopyIons.Parameters.AddWithValue("@newLasmplid", newLasmplid);
+                            //    cmdCopyIons.Parameters.AddWithValue("@oldId", id);
+                            //    cmdCopyIons.ExecuteNonQuery();
+                            //}
+
+                            // Commit the transaction
+                            transaction.Commit();
+                        }
+                        catch (Exception ex)
+                        {
+                            // Rollback on error
+                            transaction.Rollback();
+                            throw new Exception($"Error copying record: {ex.Message}", ex);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Copy error: {ex.Message}");
+                // You might want to show an error message to the user here
+            }
+        }
+    }
+}
+--------------------------------------------------------------------------------------
+
+
+ 
+ ------------------------------------------------------------------------------------------------------------------------------------
  private bool UpsertRecord(string tableName,string idColumnName,object idValue,Dictionary<string, object> columnData)
  {
      if (columnData == null || columnData.Count == 0)

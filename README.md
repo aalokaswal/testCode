@@ -1,4 +1,19 @@
 
+<form id="form1" runat="server">
+        <div class="confirm-container">
+            <div class="confirm-message">
+                <h3>Copy Record Confirmation</h3>
+                <p>Are you sure you want to copy this record?</p>
+            </div>
+            <div class="button-container">
+                <asp:Button ID="btnCopy" runat="server" Text="Copy" CssClass="btn btn-primary" OnClick="btnCopy_Click" />
+                <asp:Button ID="btnCancel" runat="server" Text="Cancel" CssClass="btn btn-secondary" OnClientClick="window.close(); return false;" />
+            </div>
+        </div>
+    </form>
+
+
+------------------------------------------------------------------------
   <asp:Button ID="btnCopy" runat="server" 
      Text="C" 
      CssClass="btn-copy"

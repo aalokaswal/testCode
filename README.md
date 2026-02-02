@@ -1,4 +1,90 @@
 
+else if (e.CommandName == "CopyRecord")
+{
+    string recordId = e.CommandArgument.ToString();
+
+    // Store the original LASMPLID to position the copy after it
+    Session["OriginalLasmplid"] = recordId;
+
+    // Copy the record
+    string newLasmplid = CopyRecordInDb(recordId);
+
+    if (!string.IsNullOrEmpty(newLasmplid))
+    {
+        // Store the new ID to highlight it after reload
+        Session["NewLasmplid"] = newLasmplid;
+        Session["HighlightRowId"] = newLasmplid;
+
+        // Reload grid data with custom ordering
+        LoadGridDataWithCopiedRow();
+
+        // Scroll to the newly added row using JavaScript
+        string script = @"
+            setTimeout(function() {
+                var highlightedRow = document.querySelector('tr[style*=""background-color""]');
+                if (highlightedRow) {
+                    highlightedRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }, 100);";
+        ScriptManager.RegisterStartupScript(this, GetType(), "ScrollToNew", script, true);
+    }
+}
+
+  private void LoadGridDataWithCopiedRow()
+  {
+      string columnName = (Session["ColumnName"] as string) ?? "TEMP_CENT";
+      DataTable dt = GetSCChmAll(columnName);
+
+      string originalId = Session["OriginalLasmplid"]?.ToString();
+      string newId = Session["NewLasmplid"]?.ToString();
+
+      if (!string.IsNullOrEmpty(originalId) && !string.IsNullOrEmpty(newId))
+      {
+          int originalIndex = -1;
+          int newIndex = -1;
+
+          for (int i = 0; i < dt.Rows.Count; i++)
+          {
+              string lasmplid = dt.Rows[i]["LASMPLID"].ToString();
+              if (lasmplid == originalId)
+                  originalIndex = i;
+              if (lasmplid == newId)
+                  newIndex = i;
+          }
+
+          if (originalIndex >= 0 && newIndex >= 0 && newIndex != originalIndex + 1)
+          {
+              // Copy data FIRST
+              object[] rowData = dt.Rows[newIndex].ItemArray.Clone() as object[];
+
+              // Remove old row
+              dt.Rows.RemoveAt(newIndex);
+
+              if (newIndex < originalIndex)
+                  originalIndex--;
+
+              // Insert copied row
+              DataRow copyRow = dt.NewRow();
+              copyRow.ItemArray = rowData;
+              dt.Rows.InsertAt(copyRow, originalIndex + 1);
+          }
+
+          Session["OriginalLasmplid"] = null;
+          Session["NewLasmplid"] = null;
+      }
+
+      GridView1.DataSource = dt;
+      GridView1.DataBind();
+
+      if (GridView1.HeaderRow != null)
+      {
+          GridView1.HeaderRow.Cells[3].Text = columnName;
+      }
+  }
+
+
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------
 <form id="form1" runat="server">
         <div class="confirm-container">
             <div class="confirm-message">

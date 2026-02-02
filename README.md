@@ -81,7 +81,30 @@ else if (e.CommandName == "CopyRecord")
           GridView1.HeaderRow.Cells[3].Text = columnName;
       }
   }
+---
 
+ protected void GridView1_RowDataBound(object sender, GridViewRowEventArgs e)
+ {
+     if (e.Row.RowType == DataControlRowType.Header)
+     {
+         // Update dynamic column header
+         string columnName = (Session["ColumnName"] as string) ?? "TEMP_CENT";
+         e.Row.Cells[3].Text = columnName;
+     }
+
+     // Highlight the newly copied row
+     if (e.Row.RowType == DataControlRowType.DataRow)
+     {
+         string lasmplid = DataBinder.Eval(e.Row.DataItem, "LASMPLID")?.ToString();
+         string highlightId = Session["HighlightRowId"]?.ToString();
+
+         if (!string.IsNullOrEmpty(highlightId) && lasmplid == highlightId)
+         {
+             e.Row.Style["background-color"] = "#ffffcc"; // Light yellow highlight
+             Session["HighlightRowId"] = null; // Clear after highlighting
+         }
+     }
+ }
 
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------

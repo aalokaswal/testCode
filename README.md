@@ -1,4 +1,287 @@
 
+
+USE [BEFS_ADMIN]
+GO
+/****** Object:  StoredProcedure [dbo].[Calcions]    Script Date: 06-02-2026 08:19:46 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+ALTER PROCEDURE [dbo].[Calcions]
+    @DSTAMPOF DATETIME,
+    @ALLFLAG CHAR(1)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Variable Declarations
+    DECLARE
+        @SAT100 NUMERIC(12,4),
+        @PSAT NUMERIC(12,4),
+        @RVAL VARCHAR(1),
+        @LOOPER INT,
+        @DATEOFX VARCHAR(20),
+        @XFLUORIDE NUMERIC(14,6),
+        @INCVAL2 INT = 5000,
+        @TOUT INT = 5000,
+        @INCVAL INT = 1,
+        @CNTER INT = 0,
+        @TDS_CALC NUMERIC(14,6),
+        @TDS_RAT NUMERIC(14,6),
+        @CATIONS NUMERIC(14,6),
+        @BICARB NUMERIC(14,6),
+        @CARB NUMERIC(14,6),
+        @ANIONS NUMERIC(14,6),
+        @CAAN_RAT NUMERIC(14,6),
+        @TDS_SP NUMERIC(14,6),
+        @TDS_CALSP NUMERIC(14,6),
+        @ORTHOTOT NUMERIC(14,6),
+        @NITROCHK NUMERIC(14,6),
+        @TSS_TURB NUMERIC(14,6),
+        @NACL_RAT NUMERIC(14,6),
+        @SPSO4_RAT NUMERIC(14,6),
+        @CAT_SP NUMERIC(14,6),
+        @AN_SP NUMERIC(14,6),
+        @TDS_CALCR VARCHAR(1),
+        @TDS_RATR VARCHAR(1),
+        @CATIONSR VARCHAR(1),
+        @BICARBR VARCHAR(1),
+        @CARBR VARCHAR(1),
+        @ANIONSR VARCHAR(1),
+        @CAAN_RATR VARCHAR(1),
+        @TDS_SPR VARCHAR(1),
+        @TDS_CALSPR VARCHAR(1),
+        @ORTHOTOTR VARCHAR(1),
+        @NITROCHKR VARCHAR(1),
+        @TSS_TURBR VARCHAR(1),
+        @NACL_RATR VARCHAR(1),
+        @SPSO4_RATR VARCHAR(1),
+        @CAT_SPR VARCHAR(1),
+        @AN_SPR VARCHAR(1),
+        @PPERVAL FLOAT,
+        @PMAXVAL FLOAT,
+        @PSTD FLOAT;
+
+    -- MESSAGE BUILDING VARIABLE - WIDENED TO AVOID OVERFLOW
+    DECLARE @MSG_TEXT VARCHAR(4000);
+
+    -- Declare variables for the cursor columns
+    -- Replace with actual data types and sizes
+    DECLARE
+        @PROG_CODE VARCHAR(50),
+        @SITE_NAME VARCHAR(50),
+        @COL_DATEX VARCHAR(20),
+        @COL_DATE DATE,
+        @COL_TIME VARCHAR(10),
+        @DEPTH NUMERIC(14,6),
+        @LASMPLID VARCHAR(50),
+        @ALKALINTY NUMERIC(14,6),
+        @CALCIUM NUMERIC(14,6),
+        @CHLORIDE NUMERIC(14,6),
+        @MAGNESIUM NUMERIC(14,6),
+        @NITRATE NUMERIC(14,6),
+        @NO2_NO3 NUMERIC(14,6),
+        @POTTASIUM NUMERIC(14,6),
+        @SILICA NUMERIC(14,6),
+        @SODIUM NUMERIC(14,6),
+        @SULFATE NUMERIC(14,6),
+        @PHOSPHU NUMERIC(14,6),
+        @TOTHARD NUMERIC(14,6),
+        @FLUORIDE NUMERIC(14,6),
+        @PHFIELD NUMERIC(14,6),
+        @PHLAB NUMERIC(14,6),
+        @MANGANESE NUMERIC(14,6),
+        @ORTH_PHOS NUMERIC(14,6),
+        @ORTH_PHOSR VARCHAR(1),
+        @KJELDAHL NUMERIC(14,6),
+        @KJELDAHLR VARCHAR(1),
+        @AMMONIA NUMERIC(14,6),
+        @AMMONIAR VARCHAR(1),
+        @TSS NUMERIC(14,6),
+        @TURBIDITY NUMERIC(14,6),
+        @DISOXY NUMERIC(14,6),
+        @TEMP_CENT NUMERIC(14,6),
+        @SPEC_COND NUMERIC(14,6),
+        @DSTAMP DATETIME,
+        @LABNUM VARCHAR(50);
+
+    -- Declare the cursor
+    DECLARE data_cursor CURSOR FORWARD_ONLY READ_ONLY FOR
+    SELECT
+        PROG_CODE, SITE_NAME, COL_DATEX, COL_DATE, COL_TIME, DEPTH, LASMPLID,
+        ALKALINTY, CALCIUM, CHLORIDE, MAGNESIUM, NITRATE, NO2_NO3, POTTASIUM,
+        SILICA, SODIUM, SULFATE, PHOSPHU, TOTHARD, FLUORIDE, PHFIELD, PHLAB,
+        MANGANESE, ORTH_PHOS, ORTH_PHOSR, KJELDAHL, KJELDAHLR, AMMONIA, AMMONIAR,
+        TSS, TURBIDITY, DISOXY, TEMP_CENT, SPEC_COND, DSTAMP, LABNUM
+    FROM dbo.SC_CHM_ALL
+    WHERE (@ALLFLAG = 'Y') OR (DSTAMP = @DSTAMPOF)
+    ORDER BY SITE_NAME, COL_DATEX, COL_TIME;
+
+    -- Initialize DATEOFX
+    IF @ALLFLAG = 'Y'
+    BEGIN
+        DELETE FROM dbo.SCIONS;
+        SET @DATEOFX = CONVERT(VARCHAR(20), GETDATE(), 120);
+    END
+    ELSE
+    BEGIN
+        SET @DATEOFX = CONVERT(VARCHAR(20), @DSTAMPOF, 120);
+    END
+
+    OPEN data_cursor;
+
+    FETCH NEXT FROM data_cursor INTO
+        @PROG_CODE, @SITE_NAME, @COL_DATEX, @COL_DATE, @COL_TIME, @DEPTH, @LASMPLID,
+        @ALKALINTY, @CALCIUM, @CHLORIDE, @MAGNESIUM, @NITRATE, @NO2_NO3, @POTTASIUM,
+        @SILICA, @SODIUM, @SULFATE, @PHOSPHU, @TOTHARD, @FLUORIDE, @PHFIELD, @PHLAB,
+        @MANGANESE, @ORTH_PHOS, @ORTH_PHOSR, @KJELDAHL, @KJELDAHLR, @AMMONIA, @AMMONIAR,
+        @TSS, @TURBIDITY, @DISOXY, @TEMP_CENT, @SPEC_COND, @DSTAMP, @LABNUM;
+
+    WHILE @@FETCH_STATUS = 0
+    BEGIN
+        SET @CNTER += 1;
+
+        IF @CNTER > 120000
+            BREAK;
+
+        -- Delete existing records if ALLFLAG is not 'Y'
+        IF @ALLFLAG <> 'Y'
+        BEGIN
+            DELETE FROM dbo.SCIONS
+            WHERE SITE_NAME = @SITE_NAME AND COL_DATEX = @COL_DATEX AND COL_TIME = @COL_TIME;
+        END
+
+        -- Skip records where PHFIELD > 11
+        IF @PHFIELD IS NOT NULL AND @PHFIELD > 11
+        BEGIN
+            FETCH NEXT FROM data_cursor INTO
+                @PROG_CODE, @SITE_NAME, @COL_DATEX, @COL_DATE, @COL_TIME, @DEPTH, @LASMPLID,
+                @ALKALINTY, @CALCIUM, @CHLORIDE, @MAGNESIUM, @NITRATE, @NO2_NO3, @POTTASIUM,
+                @SILICA, @SODIUM, @SULFATE, @PHOSPHU, @TOTHARD, @FLUORIDE, @PHFIELD, @PHLAB,
+                @MANGANESE, @ORTH_PHOS, @ORTH_PHOSR, @KJELDAHL, @KJELDAHLR, @AMMONIA, @AMMONIAR,
+                @TSS, @TURBIDITY, @DISOXY, @TEMP_CENT, @SPEC_COND, @DSTAMP, @LABNUM;
+            CONTINUE;
+        END
+
+        -- Initialize variables
+        SET @TDS_CALC = NULL; SET @TDS_RAT = NULL; SET @CATIONS = NULL; SET @BICARB = NULL;
+        SET @CARB = NULL; SET @ANIONS = NULL; SET @CAAN_RAT = NULL; SET @TDS_SP = NULL;
+        SET @TDS_CALSP = NULL; SET @ORTHOTOT = NULL; SET @NITROCHK = NULL; SET @TSS_TURB = NULL;
+        SET @NACL_RAT = NULL; SET @SPSO4_RAT = NULL; SET @CAT_SP = NULL; SET @AN_SP = NULL;
+
+        SET @TDS_CALCR = NULL; SET @TDS_RATR = NULL; SET @CATIONSR = NULL; SET @BICARBR = NULL;
+        SET @CARBR = NULL; SET @ANIONSR = NULL; SET @CAAN_RATR = NULL; SET @TDS_SPR = NULL;
+        SET @TDS_CALSPR = NULL; SET @ORTHOTOTR = NULL; SET @NITROCHKR = NULL; SET @TSS_TURBR = NULL;
+        SET @NACL_RATR = NULL; SET @SPSO4_RATR = NULL; SET @CAT_SPR = NULL; SET @AN_SPR = NULL;
+
+        -- Perform Calculations (Example for TDS_CALC)
+        IF @ALKALINTY IS NOT NULL AND @CALCIUM IS NOT NULL AND
+           @CHLORIDE IS NOT NULL AND @MAGNESIUM IS NOT NULL AND
+           (@NITRATE IS NOT NULL OR @NO2_NO3 IS NOT NULL) AND
+           @POTTASIUM IS NOT NULL AND @SILICA IS NOT NULL AND
+           @SODIUM IS NOT NULL AND @SULFATE IS NOT NULL AND
+           @PHOSPHU IS NOT NULL AND @TOTHARD IS NOT NULL AND
+           @FLUORIDE IS NOT NULL
+        BEGIN
+            IF @NITRATE IS NOT NULL
+            BEGIN
+                SET @TDS_CALC = (@ALKALINTY * 0.6) + @CALCIUM + @CHLORIDE +
+                                @MAGNESIUM + (@NITRATE * 4.45) + @POTTASIUM +
+                                @SILICA + @SODIUM + @SULFATE + @FLUORIDE +
+                                (@PHOSPHU * 3.06);
+                SET @TDS_CALCR = ' ';
+            END
+            ELSE
+            BEGIN
+                SET @TDS_CALC = (@ALKALINTY * 0.6) + @CALCIUM + @CHLORIDE +
+                                @MAGNESIUM + (@NO2_NO3 * 4.45) + @POTTASIUM +
+                                @SILICA + @SODIUM + @SULFATE + @FLUORIDE +
+                                (@PHOSPHU * 3.06);
+                SET @TDS_CALCR = ' ';
+            END
+        END
+
+        -- Continue with other calculations following the same pattern...
+
+        -- Call ANISTATS procedure if necessary
+        IF @SPSO4_RAT IS NOT NULL AND @ALLFLAG <> 'Y'
+        BEGIN
+            EXEC dbo.ANISTATS1
+                'ION',
+                @SITE_NAME,
+                'SPSO4_RAT',
+                0.95,
+                @PPERVAL OUTPUT,
+                @PMAXVAL OUTPUT,
+                @PSTD OUTPUT;
+
+            IF ROUND(@SPSO4_RAT, 4) > ROUND(@PMAXVAL, 4) AND @PMAXVAL > 0
+            BEGIN
+                -- BUILD MESSAGE STRING INCREMENTALLY TO AVOID NVARCHAR OVERFLOW
+                SET @MSG_TEXT  = 'D:';
+                SET @MSG_TEXT  = @MSG_TEXT + SUBSTRING(@COL_DATEX, 5, 2) + '/';
+                SET @MSG_TEXT  = @MSG_TEXT + SUBSTRING(@COL_DATEX, 7, 2) + '/';
+                SET @MSG_TEXT  = @MSG_TEXT + SUBSTRING(@COL_DATEX, 1, 4);
+                SET @MSG_TEXT  = @MSG_TEXT + ' T:' + @COL_TIME;
+                SET @MSG_TEXT  = @MSG_TEXT + ' SPSO4_RAT: OLD MAX:';
+                SET @MSG_TEXT  = @MSG_TEXT + CAST(ROUND(@PMAXVAL, 3) AS VARCHAR(20));
+                SET @MSG_TEXT  = @MSG_TEXT + ' Sample Value: ';
+                SET @MSG_TEXT  = @MSG_TEXT + LTRIM(CAST(@SPSO4_RAT AS VARCHAR(20)));
+
+                INSERT INTO dbo.SCUPRPT 
+                VALUES (
+                    @DATEOFX,
+                    @INCVAL,
+                    @MSG_TEXT,
+                    'Z',
+                    @SITE_NAME
+                );
+                SET @INCVAL += 1;
+            END
+            -- Continue with other conditions...
+        END
+
+        -- Insert the calculated values into SCIONS
+        INSERT INTO dbo.SCIONS
+        (
+            PROG_CODE, SITE_NAME, COL_DATEX, COL_DATE, COL_TIME, COL_DEPTH,
+            LASMPLID,
+            TDS_CALC, TDS_CALCR, TDS_RAT, TDS_RATR, CATIONS, CATIONSR, BICARB, BICARBR,
+            CARB, CARBR, ANIONS, ANIONSR, CAAN_RAT, CAAN_RATR, TDS_SP, TDS_SPR,
+            TDS_CALSP, TDS_CALSPR, ORTHOTOT, ORTHOTOTR, NITROCHK, NITROCHKR,
+            TSS_TURB, TSS_TURBR, NACL_RAT, NACL_RATR, SPSO4_RAT, SPSO4_RATR,
+            CAT_SP, CAT_SPR, AN_SP, AN_SPR, PRCNT_SAT, PRCNT_SATR, DSTAMP, LABNUM, DATEOF
+        )
+        VALUES
+        (
+            @PROG_CODE, @SITE_NAME, @COL_DATEX, @COL_DATE, @COL_TIME, @DEPTH, @LASMPLID,
+            @TDS_CALC, @TDS_CALCR, @TDS_RAT, @TDS_RATR, @CATIONS, @CATIONSR, @BICARB, @BICARBR,
+            @CARB, @CARBR, @ANIONS, @ANIONSR, @CAAN_RAT, @CAAN_RATR, @TDS_SP, @TDS_SPR,
+            @TDS_CALSP, @TDS_CALSPR, @ORTHOTOT, @ORTHOTOTR, @NITROCHK, @NITROCHKR,
+            @TSS_TURB, @TSS_TURBR, @NACL_RAT, @NACL_RATR, @SPSO4_RAT, @SPSO4_RATR,
+            @CAT_SP, @CAT_SPR, @AN_SP, @AN_SPR, @PSAT, @RVAL, @DSTAMP, @LABNUM, @DATEOFX
+        );
+
+        -- Fetch the next record
+        FETCH NEXT FROM data_cursor INTO
+            @PROG_CODE, @SITE_NAME, @COL_DATEX, @COL_DATE, @COL_TIME, @DEPTH, @LASMPLID,
+            @ALKALINTY, @CALCIUM, @CHLORIDE, @MAGNESIUM, @NITRATE, @NO2_NO3, @POTTASIUM,
+            @SILICA, @SODIUM, @SULFATE, @PHOSPHU, @TOTHARD, @FLUORIDE, @PHFIELD, @PHLAB,
+            @MANGANESE, @ORTH_PHOS, @ORTH_PHOSR, @KJELDAHL, @KJELDAHLR, @AMMONIA, @AMMONIAR,
+            @TSS, @TURBIDITY, @DISOXY, @TEMP_CENT, @SPEC_COND, @DSTAMP, @LABNUM;
+    END
+
+    CLOSE data_cursor;
+    DEALLOCATE data_cursor;
+
+END
+
+
+
+
+
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------
 else if (e.CommandName == "CopyRecord")
 {
     string recordId = e.CommandArgument.ToString();

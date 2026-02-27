@@ -1,13 +1,23 @@
-
-var _cancelConfirmSubmitting = false;   // lives in page memory, never reset
-
 function CancelConfirmContinueClick(postbackTarget) {
-    if (_cancelConfirmSubmitting) {
-        return false;    // second click → blocked immediately, nothing fires
-    }
-    _cancelConfirmSubmitting = true;     // first click → flag set permanently
-    // ... disable button visually + trigger postback
-}
------------------------
+            if (_cancelConfirmSubmitting) {
+                return false;   // already clicked — block completely
+            }
+            _cancelConfirmSubmitting = true;
 
-VB — update Page_Load to call CancelConfirmContinueClick instead of ExecuteButtonClick directly:
+            // Disable the Continue button
+            var btn = document.getElementById('<%=btnCancelConfirmContinue.ClientID%>');
+            if (btn) {
+                btn.disabled = true;
+                btn.value = 'Please wait...';
+            }
+
+            // Show the full-page busy overlay with spinner — stays visible until
+            // the browser navigates away to CertificateForm
+            var overlay = document.getElementById('divCancelRedirectBusy');
+            if (overlay) {
+                overlay.style.display = 'block';
+            }
+
+            ExecuteButtonClick(postbackTarget);
+            return false;
+        }
